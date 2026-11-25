@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mail Merge — one sheet, one template, your own mail client</title>
+<meta name="description" content="Batch-personalised messages from a sheet, handed to your own mail client. Offline, on device, no account — the app never sends anything.">
+<meta name="theme-color" content="#101418">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root{--bg:#f6f5f2;--panel:#fff;--ink:#14181d;--muted:#5d666f;--line:#d9d6cf;--accent:#1f5f4f;--accent-ink:#fff;
+        --warn:#8a5a00;--bad:#a02a2a;--ok:#1f5f4f;--mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+        --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;font-size:16px}
+  header.top{border-bottom:1px solid var(--line);background:var(--panel);padding:14px 20px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+  header.top h1{font-size:18px;margin:0;letter-spacing:-.01em}
+  header.top p{margin:0;color:var(--muted);font-size:13px}
+  header.top a{margin-left:auto;color:var(--accent);font-size:13px;text-decoration:none;border-bottom:1px solid currentColor}
+  main{max-width:1120px;margin:0 auto;padding:20px}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+  .tab{font:inherit;font-size:14px;padding:9px 14px;border:1px solid transparent;border-bottom:none;background:none;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0}
+  .tab[aria-selected="true"]{background:var(--panel);border-color:var(--line);color:var(--ink);font-weight:600;margin-bottom:-1px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+  .card h2{font-size:14px;margin:0 0 10px;letter-spacing:.02em}
+  .card h2 small{font-weight:400;color:var(--muted);font-size:12px;letter-spacing:0;margin-left:6px}
+  label.fld{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+  textarea,input,select{font:inherit;font-size:14px;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:inherit}
+  textarea{font-family:var(--mono);font-size:13px;line-height:1.6;resize:vertical}
+  textarea:focus,input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.row{grid-template-columns:1fr}}
+  button{font:inherit;font-size:13px;padding:8px 13px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  button:hover{border-color:var(--muted)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+  button.primary:disabled{opacity:.5;cursor:not-allowed}
+  button.small{padding:4px 9px;font-size:12px}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .bar .grow{flex:1}
+  .hint{color:var(--muted);font-size:12px}
+  .status{margin:10px 0;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:13px;display:none}
+  .status.show{display:block}
+  .status.bad{border-color:#e3b7b7;background:#fdf3f3;color:#7d1f1f}
+  .status.ok{border-color:#b7d8cd;background:#f2f9f6;color:#14503f}
+  .status.warn{border-color:#e8d5ae;background:#fdf8ee;color:#6b4700}
+  .drop{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted);display:inline-block}
+  .drop.over{border-color:var(--accent);color:var(--accent)}
+  .msgs{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+  .msg{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:9px;padding:12px 14px;background:var(--panel)}
+  .msg .head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .msg .to{font-family:var(--mono);font-size:13px;color:var(--ink)}
+  .msg .body{font-family:var(--mono);font-size:13px;white-space:pre-wrap;margin:8px 0;background:#fbfaf8;border:1px solid var(--line);border-radius:7px;padding:9px 10px}
+  .chip{font-size:11px;text-transform:uppercase;letter-spacing:.07em;padding:2px 8px;border-radius:999px;background:#ecebe6;color:var(--muted)}
+  .chip.opened{background:#e7eef9;color:#2a4a7a}
+  .chip.marked{background:#e4f1ea;color:var(--ok)}
+  .stats{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-width:86px}
+  .stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums;line-height:1.1}
+  .stat span{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}
+  th,td{text-align:left;border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  pre.out{font-family:var(--mono);font-size:13px;white-space:pre-wrap;background:#fbfaf8;border:1px solid var(--line);border-radius:7px;padding:12px;margin:0}
+  .empty{text-align:center;color:var(--muted);padding:26px 14px;font-size:14px}
+  footer{max-width:1120px;margin:0 auto;padding:22px 20px 40px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Mail Merge</h1>
+  <p>One sheet, one template. It prepares the messages; your own mail client sends them. Nothing leaves this device.</p>
+  <a href="../index.html">about</a>
+</header>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-messages" aria-selected="true" aria-controls="panel-messages">Messages</button>
+    <button class="tab" role="tab" id="tab-report" aria-selected="false" aria-controls="panel-report">Report</button>
+  </div>
+
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+
+  <!-- ------------------------------------------------ shared: the sheet -->
+  <section class="card">
+    <h2>The sheet <small>CSV with a header row; one row per recipient</small></h2>
+    <label class="fld" for="sheetText">Paste the CSV</label>
+    <textarea id="sheetText" rows="6" spellcheck="false" placeholder="Name,Email,Amount&#10;Asha,asha@example.com,&quot;1,00,000&quot;&#10;Ravi,ravi@example.com,&quot;45,000&quot;"></textarea>
+    <div class="bar">
+      <label class="drop" id="drop" for="file">Drop or choose a .csv file</label>
+      <input class="sr" type="file" id="file" accept=".csv,.tsv,.txt,text/csv,text/plain">
+      <button type="button" id="example">Load example</button>
+      <span class="grow"></span>
+      <span class="hint" id="sheetInfo">No sheet read yet.</span>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------- panel: messages -->
+  <div id="panel-messages" role="tabpanel" aria-labelledby="tab-messages">
+    <section class="card">
+      <h2>The template <small>{{Column}} is replaced by that column's value — nothing is calculated</small></h2>
+      <div class="row">
+        <div>
+          <label class="fld" for="subject">Subject</label>
+          <input id="subject" type="text" placeholder="Invoice for {{Name}}" spellcheck="false">
+        </div>
+        <div>
+          <label class="fld" for="addressCol">Address column</label>
+          <select id="addressCol"><option value="">— read a sheet first —</option></select>
+        </div>
+      </div>
+      <label class="fld" for="body">Body</label>
+      <textarea id="body" rows="6" spellcheck="false" placeholder="Dear {{Name}},&#10;&#10;Your invoice for Rs {{Amount}} is ready."></textarea>
+      <div class="bar">
+        <button class="primary" type="button" id="prepare">Prepare messages</button>
+        <span class="grow"></span>
+        <span class="hint">Nothing is sent from here. Each message opens in your own mail client.</span>
+      </div>
+    </section>
+
+    <div class="stats" id="msgStats" hidden>
+      <div class="stat"><b id="cTotal">0</b><span>Messages</span></div>
+      <div class="stat"><b id="cPrepared">0</b><span>Prepared</span></div>
+      <div class="stat"><b id="cOpened">0</b><span>Opened</span></div>
+      <div class="stat"><b id="cMarked">0</b><span>Marked sent</span></div>
+      <div class="stat"><b id="cExcluded">0</b><span>Excluded rows</span></div>
+    </div>
+
+    <div class="bar" id="msgExport" hidden>
+      <button type="button" id="exportMessages">Export messages (.md)</button>
+      <button type="button" id="exportStatus">Export status (.csv)</button>
+      <span class="hint" id="exportNote"></span>
+    </div>
+
+    <ol class="msgs" id="messages"></ol>
+    <div class="empty" id="msgEmpty">Read a sheet and write a template, then press <strong>Prepare messages</strong>.
+      <br>The app composes each message and hands it to your mail client; it never sends anything itself.</div>
+  </div>
+
+  <!-- ----------------------------------------------- panel: report -->
+  <div id="panel-report" role="tabpanel" aria-labelledby="tab-report" hidden>
+    <section class="card">
+      <h2>Assemble a report <small>every figure is a column, and every figure shows the row it came from</small></h2>
+      <label class="fld" for="reportTpl">The report text</label>
+      <textarea id="reportTpl" rows="6" spellcheck="false" placeholder="Amount invoiced: Rs {{Amount}}&#10;Prepared for: {{Name}}"></textarea>
+      <div class="bar">
+        <button class="primary" type="button" id="assemble">Assemble report</button>
+        <button type="button" id="saveMapping">Remember this file's columns</button>
+        <button type="button" id="exportReport" hidden>Export report (.md)</button>
+        <span class="grow"></span>
+        <span class="hint" id="mappingInfo">No column mapping saved.</span>
+      </div>
+    </section>
+    <section class="card" id="reportOutCard" hidden>
+      <h2>The report</h2>
+      <pre class="out" id="reportOut"></pre>
+      <h2 style="margin-top:14px">Where every figure came from</h2>
+      <table id="provTable"><thead><tr><th>Figure</th><th>Column</th><th>Value</th><th>Rows</th><th>File</th></tr></thead><tbody></tbody></table>
+    </section>
+  </div>
+</main>
+
+<footer>
+  Mail Merge composes messages and reports on this device and hands them to your own mail client. It has no server, no account and no transport, so it cannot send, and it never says it did.
+  <br>PolyForm Noncommercial 1.0.0 · (c) 2026 Dr Sohil Momin
+</footer>
+
+<script src="web-kit.js"></script>
+<script src="export-kit.js"></script>
+<script src="merge-core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

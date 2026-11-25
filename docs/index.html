@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mail Merge — one sheet, one template, your own mail client</title>
+<meta name="description" content="Batch-personalised messages from a sheet, handed to your own mail client, and a report assembled from the same columns with every figure traced. Offline, no account, no transport.">
+<meta name="theme-color" content="#101418">
+<style>
+  :root{--bg:#f6f5f2;--panel:#fff;--ink:#14181d;--muted:#5d666f;--line:#d9d6cf;--accent:#1f5f4f}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+  main{max-width:780px;margin:0 auto;padding:48px 20px 64px}
+  h1{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:0 0 10px}
+  .lede{font-size:18px;color:var(--muted);margin:0 0 26px}
+  .cta{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:9px}
+  .cta:hover{filter:brightness(1.08)}
+  .status{margin:26px 0;padding:14px 16px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:9px;background:var(--panel);font-size:14px}
+  .status b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+  h2{font-size:17px;margin:30px 0 8px}
+  ul{padding-left:20px}li{margin:4px 0}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px;background:#eeede9;padding:1px 5px;border-radius:4px}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}
+  th,td{text-align:left;border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+  a{color:var(--accent)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  @media(max-width:700px){.two{grid-template-columns:1fr}}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-size:14px}
+  .box b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Mail Merge</h1>
+  <p class="lede">One sheet, one template. It prepares a personalised message for every row and hands
+  each one to <em>your</em> mail client — and it assembles a report from the same columns, where every
+  figure shows the row it came from.</p>
+
+  <a class="cta" href="play/index.html">Open Mail Merge</a>
+
+  <div class="status">
+    <b>Status</b>
+    Built and working offline: CSV reading, <code>{{Column}}</code> personalisation, one message per row,
+    an address-column check, excluded rows listed with the reason, a status file that survives a reload,
+    a corrupt status file that is reported instead of replaced, a report assembled from columns with
+    per-figure provenance, and a saved column mapping that refuses a mismatched file.
+    <br><b>Not built</b>: a packaged Windows EXE / Android APK release (see the README), and attachments.
+  </div>
+
+  <div class="two">
+    <div class="box"><b>Messages</b>
+      <code>Dear {{Name}}, your invoice for Rs {{Amount}} is ready.</code> → three rows become three
+      messages, each with its own values. Each opens in your mail client. Nothing is sent from here.</div>
+    <div class="box"><b>Report</b>
+      <code>Amount invoiced: Rs {{Amount}}</code> → the figure, with the column, the rows and the file
+      it came from. When a column holds several values it lists them instead of inventing a total.</div>
+  </div>
+
+  <h2>What it does</h2>
+  <ul>
+    <li>Reads a real CSV — quoted commas, doubled quotes, embedded newlines, CRLF, a BOM.</li>
+    <li>Personalises by <strong>column name</strong>, so <code>{{Name}}</code> is that column's value and nothing is calculated.</li>
+    <li>Guesses the address column, and lets you change it.</li>
+    <li>Excludes rows with no address or a broken one, and lists each excluded row with its reason.</li>
+    <li>Keeps a per-recipient status on the device: prepared, opened in mail client, marked sent by you.</li>
+    <li>Assembles a report where every figure carries its column, its rows and its file.</li>
+    <li>Remembers a file's columns, and refuses next month's file if the columns do not match.</li>
+  </ul>
+
+  <h2>What it will not do</h2>
+  <ul>
+    <li><strong>Send anything.</strong> There is no transport in this app — no SMTP, no API, no queue.
+      It composes and hands over a <code>mailto:</code> link; your mail client is the sender.</li>
+    <li><strong>Claim a send it did not perform.</strong> A fresh batch is only ever "prepared"; "marked sent"
+      is a box you tick.</li>
+    <li><strong>Do arithmetic it cannot show.</strong> A placeholder is a column, never an expression —
+      <code>{{Amount * 2}}</code> is refused as a column that does not exist.</li>
+    <li><strong>Merge with a missing column.</strong> A placeholder with no matching column refuses the whole
+      merge, by name, rather than producing half-filled messages.</li>
+    <li><strong>Upload anything.</strong> No network at runtime; the page's CSP sets <code>connect-src 'none'</code>.</li>
+  </ul>
+
+  <h2>When things go wrong</h2>
+  <table>
+    <tr><th>Case</th><th>What happens</th></tr>
+    <tr><td>Bad input</td><td>A placeholder with no column is refused by name and the merge does not run. A row with no usable address is excluded and listed.</td></tr>
+    <tr><td>No network</td><td>Nothing changes: composing and personalising are local. The app says plainly that it composed the messages and did not send them.</td></tr>
+    <tr><td>Storage full or unavailable</td><td>The output is not written, and the message names how many items had been prepared — so a partial batch is never mistaken for a complete one.</td></tr>
+    <tr><td>Corrupt saved state</td><td>An unreadable status file is reported and offered for export; the sheet and the template are kept separately, so a broken status cannot lose the source data.</td></tr>
+  </table>
+
+  <h2>How to run it</h2>
+  <ul>
+    <li><strong>Here</strong>: <a href="play/index.html">play/index.html</a>, or install it from your browser's menu.</li>
+    <li><strong>Offline file</strong>: open <code>docs/play/index.html</code> straight from disk.</li>
+    <li><strong>Tests</strong>: <code>node tests/self-tests.js</code> — every "will not do" above is a named assertion.</li>
+  </ul>
+
+  <footer>
+    PolyForm Noncommercial 1.0.0 · (c) 2026 Dr Sohil Momin ·
+    <a href="https://github.com/drsamonline/app-mail-merge">source</a>
+  </footer>
+</main>
+</body>
+</html>
