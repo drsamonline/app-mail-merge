@@ -15,7 +15,8 @@ figure shows the row and the file it came from.
 | | |
 |---|---|
 | **Built** | CSV reader (quoted commas, doubled quotes, embedded newlines, CRLF, BOM); `{{Column}}` personalisation by column name, case-insensitive; address-column guess and override; one message per row with a `mailto:` handoff; excluded rows listed with the reason; per-recipient status kept on the device; corrupt status reported and offered for export; report assembled from columns with per-figure provenance; saved column mapping that refuses a mismatched file; export of messages, status and report. |
-| **Not built** | A packaged Windows EXE / Android APK release (`app-builder` is not reachable from the build environment — see below). Attachments. A direct send of any kind — by design, not by omission. |
+| **Release** | Windows EXE, Android APK and Linux binary, built from this source by `app-builder` in CI, attached to the rolling release: [app-latest](https://github.com/drsamonline/app-mail-merge/releases/tag/app-latest) |
+| **Not built** | Attachments. A direct send of any kind — by design, not by omission. |
 | **Untested** | Dragging a file from the OS and the file picker (the CSV is tested through the textarea path), the service worker and the install prompt (jsdom implements neither), and what a real mail client does with a long `mailto:` body — Gmail and Outlook truncate around 2,000 characters, and this app does not know your client's limit. |
 
 ## The two jobs, one engine
@@ -106,11 +107,6 @@ PAGES.json                 landing = docs/index.html, app = docs/play/index.html
 - **`mailto:` length** is not truncated by the app: silently cutting a message would send half of it.
 
 ## What is not built, and why
-
-**The packaged release.** The definition of done asks for a release with the EXE and APK that
-`app-builder` produces from the same source. `app-builder` was not reachable from the environment
-this was built in, so no release exists and none is claimed. The same bytes run from `file://`, as
-an installed PWA, and — once `app-builder` runs over `docs/play/index.html` — as an APK.
 
 **Attachments.** A `mailto:` link cannot carry one. Adding attachments would mean writing an `.eml`
 file per message, which is a different feature and a different test.
