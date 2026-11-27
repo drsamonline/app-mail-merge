@@ -9,6 +9,7 @@ figure shows the row and the file it came from.
 - **Plan row:** #2 of 37 in `drsamonline/forge` → `QUEUE/PLAN.json`
 - **Specs absorbed:** `app-mailmerge` (lead), `app-report-assembler`
 - **Licence:** PolyForm Noncommercial 1.0.0
+- **Sponsor:** [github.com/sponsors/drsamonline](https://github.com/sponsors/drsamonline) — free, offline, no account
 
 ## Status
 
