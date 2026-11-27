@@ -68,14 +68,22 @@
   }
 
   /* Storage is optional and never assumed. A refusal is reported, not swallowed. */
+  /* store() used to return a failure nobody printed: every handler went on to say the work was done. It now
+   * reports, and okStatus() refuses to overwrite the report. */
+  var lastStoreFailed = false;
   function store(key, value) {
     try {
       window.localStorage.setItem(key, value);
+      lastStoreFailed = false;
       return { ok: true };
     } catch (e) {
-      return { ok: false, reason: e && e.name === "QuotaExceededError" ? "storage is full" : "storage is unavailable" };
+      lastStoreFailed = true;
+      var why = e && e.name === "QuotaExceededError" ? "storage is full" : "storage is unavailable";
+      setStatus("bad", "NOT SAVED: " + why + ". What is on screen will not survive a reload.");
+      return { ok: false, reason: why };
     }
   }
+  function okStatus(message) { if (!lastStoreFailed) setStatus("ok", message); }
 
   function load(key) {
     try { return { ok: true, value: window.localStorage.getItem(key) }; }
@@ -149,6 +157,7 @@
       subject: els.subject.value, body: els.body.value, report: els.reportTpl.value
     }));
     if (!saved.ok) setStatus("warn", "The template could not be saved on this device: " + saved.reason + ".");
+    return saved;
   }
 
   /* ------------------------------------------------------------- messages */
@@ -233,6 +242,7 @@
     var saved = store(K_STATUS, Core.serializeStatus({ savedOn: now(), batch: state.sheetName, entries: state.entries }));
     if (!saved.ok) setStatus("warn", "The status could not be saved on this device: " + saved.reason + ". The messages are still on screen; export the status before closing the tab.");
     else if (els.exportNote) els.exportNote.textContent = "Status saved on this device (" + state.entries.length + " entries).";
+    return saved;
   }
 
   function prepare() {
@@ -261,17 +271,18 @@
     state.entries = result.messages.map(function (m) {
       return { row: m.row, to: m.to, subject: m.subject, status: Core.STATUS.PREPARED, at: now() };
     });
-    persistStatus();
+    var st = persistStatus();
     renderMessages();
     renderCounts();
-    saveTemplate();
+    var tpl2 = saveTemplate();
 
     var msg = state.messages.length + " message(s) prepared from " + state.csv.rows.length + " row(s). They were composed here and not sent — open each one in your mail client.";
     if (state.excluded.length) {
       msg += " " + state.excluded.length + " row(s) were excluded: " +
         state.excluded.map(function (e) { return "row " + e.row + " (" + e.reason + ")"; }).join("; ") + ".";
     }
-    setStatus("ok", msg);
+    /* a cheerful line here would overwrite the two warnings above: "prepared" is only true if it was kept */
+    if (st.ok && tpl2 && tpl2.ok) okStatus(msg);
   }
 
   function copyText(text, button) {
@@ -308,8 +319,9 @@
       els.provBody.appendChild(tr);
     });
     els.exportReport.hidden = false;
-    saveTemplate();
-    setStatus("ok", "Report assembled from " + r.rows + " row(s) of " + r.sourceName + ", with " + r.figures.length + " figure(s), each traced to its column and rows.");
+    /* the template save reports its own failure; a cheerful line here would overwrite it */
+    var tpl = saveTemplate();
+    if (!tpl || tpl.ok) okStatus("Report assembled from " + r.rows + " row(s) of " + r.sourceName + ", with " + r.figures.length + " figure(s), each traced to its column and rows.");
   }
 
   function saveMapping() {
@@ -319,7 +331,7 @@
     if (!saved.ok) { setStatus("bad", "The mapping could not be saved: " + saved.reason + "."); return; }
     state.mapping = mapping;
     els.mappingInfo.textContent = "Mapping saved: " + mapping.columns.length + " columns from " + mapping.sourceName + ".";
-    setStatus("ok", "This file's columns are remembered. Next month's file is checked against them before anything is assembled.");
+    okStatus("This file's columns are remembered. Next month's file is checked against them before anything is assembled.");
   }
 
   /* --------------------------------------------------------------- export */
@@ -339,7 +351,7 @@
     var outcome = Core.exportAll(what, payload, { when: state.when || today() }, writer);
     if (outcome.ok) {
       els.exportNote.textContent = "Wrote " + outcome.filename + " (" + outcome.bytes + " bytes).";
-      setStatus("ok", "Wrote " + outcome.filename + ". The messages are still not sent — the file is the record, your mail client is the sender.");
+      okStatus("Wrote " + outcome.filename + ". The messages are still not sent — the file is the record, your mail client is the sender.");
     } else {
       els.exportNote.textContent = "";
       setStatus("bad", "The batch is intact, but " + outcome.reason + ".");
@@ -360,7 +372,7 @@
     reader.onload = function () {
       var text = String(reader.result);
       els.sheet.value = text;
-      if (readSheet(text, file.name)) setStatus("ok", "Read " + file.name + ": " + state.csv.header.length + " columns, " + state.csv.rows.length + " rows.");
+      if (readSheet(text, file.name)) okStatus("Read " + file.name + ": " + state.csv.header.length + " columns, " + state.csv.rows.length + " rows.");
     };
     reader.readAsText(file);
   }
@@ -401,7 +413,7 @@
     els.body.value = "Dear {{Name}},\n\nYour invoice for Rs {{Amount}} for {{Month}} is ready.\n\nThank you.";
     els.reportTpl.value = "Amount invoiced: Rs {{Amount}}\nPrepared for: {{Name}}\nMonth: {{Month}}";
     readSheet(EXAMPLE, "(example)");
-    setStatus("ok", "Example loaded: three invented rows. Press Prepare messages, or Assemble report.");
+    okStatus("Example loaded: three invented rows. Press Prepare messages, or Assemble report.");
   });
 
   ["messages", "report"].forEach(function (name) {
@@ -444,7 +456,7 @@
       clear.addEventListener("click", function () {
         remove(K_STATUS);
         state.entries = [];
-        setStatus("ok", "The saved status was cleared. The sheet and the template are untouched.");
+        okStatus("The saved status was cleared. The sheet and the template are untouched.");
         renderCounts();
         renderMessages();
       });
