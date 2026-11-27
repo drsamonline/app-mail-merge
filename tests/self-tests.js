@@ -190,7 +190,9 @@ ok("it says how many rows were excluded", /2 row\(s\) were excluded/.test(allBad
 
 section("failure case — no network");
 ok("the engine never mentions a host", !/https?:\/\//.test(read("docs/play/merge-core.js")));
-ok("the page never mentions a host", !/https?:\/\//.test(read("docs/play/index.html").replace(/https:\/\/drsamonline\.github\.io[^"]*/g, "")));
+/* this project's own links are allowed - source, builds, sponsor; any other host still fails */
+ok("the page never mentions a host",
+  !/https?:\/\/(?!(github\.com\/(drsamonline|sponsors\/drsamonline)|drsamonline\.github\.io\/app-mail-merge))/.test(read("docs/play/index.html")));
 
 /* ================================================== the shape on disk */
 
